@@ -1,18 +1,18 @@
+let can = document.getElementById('main-canvas'),
+ctx = can.getContext('2d');
 window.onload = () => {
-    let can = document.getElementById('main-canvas'),
-        ctx = can.getContext('2d');
     let cbr = can.getBoundingClientRect();
     
     let drumm3rB01;
     let b01img = new Image();
-    b01img.src = '/res/b01.jpg';
+    let running = false;
+    b01img.src = '/res/elias.png';
 
     b01img.onload = () => {
         fetch('/lab.json').then(res => {
             if (res.ok)
                 return res.json();
-        }
-        ).then(res => {
+        }).then(res => {
             if (!res) {
                 window.alert('ALARM; ALRAM; ERROR!');
             } else {
@@ -22,6 +22,7 @@ window.onload = () => {
                     let cx = e.clientX - cbr.left,
                         cy = e.clientY - cbr.top;
                     drumm3rB01 = new Elias(cx, cy);
+                    drumm3rB01.vy = 1;
                     refresh();
                 };
 
@@ -32,7 +33,7 @@ window.onload = () => {
                 };
                 window.onresize();
 
-                function refresh () {
+                function refresh() {
                     ctx.clearRect(0, 0, can.width, can.height);
 
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -57,24 +58,58 @@ window.onload = () => {
                         drumm3rB01.x, drumm3rB01.y,
                         drumm3rB01.width, drumm3rB01.height
                     );
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.fillRect(drumm3rB01.x, drumm3rB01.y, drumm3rB01.width, drumm3rB01.height);
                 }
 
                 function draw_player() {
-                    ctx.drawImage(b01img, 
-                        drumm3rB01.x, drumm3rB01.y, 
+                    ctx.save();
+
+                    if (drumm3rB01.vy === -1) {
+                        ctx.rotate(0);
+                    } else if (drumm3rB01.vy === 1) {
+                        ctx.rotate(Math.PI / 2);
+                    } else if (drumm3rB01.vx === -1) {
+                        ctx.rotate(3*Math.PI/2);
+                    } else if (drumm3rB01.vx === 1) {
+                        ctx.rotate(Math.PI/2);
+                    }
+
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(10, 10, 100, 100);
+
+                    ctx.drawImage(b01img,
+                        drumm3rB01.x, drumm3rB01.y,
                         drumm3rB01.width, drumm3rB01.height);
+
+                    let gradient = ctx.createLinearGradient(drumm3rB01.x, 0, drumm3rB01.x+drumm3rB01.width, 0);
+
+                    gradient.addColorStop(0, '#e6261f');
+                    gradient.addColorStop(.125, '#eb7532');
+                    gradient.addColorStop(.25, '#f7d038');
+                    gradient.addColorStop(.375, '#a3e048');
+                    gradient.addColorStop(.5, '#49da9a');
+                    gradient.addColorStop(.625, '#34bbe6');
+                    gradient.addColorStop(.75, '#4355db');
+                    gradient.addColorStop(.875, '#d23be7');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(drumm3rB01.x, drumm3rB01.y + drumm3rB01.height,
+                        drumm3rB01.width, 25);
+
+                    ctx.restore();
                 }
 
                 function hit_wall() {
                     for (let w of lab.walls) {
                         if (
                             (
-                                (drumm3rB01.x >= w.xf && drumm3rB01.x <= w.xt) 
-                                && (drumm3rB01.y === w.yf - 1 || drumm3rB01.y === w.yf +1)
-                            )
-                            || (
-                                (drumm3rB01.y >= w.yf && drumm3rB01.y <= w.yt)
-                                && (drumm3rB01.x === w.xf - 1 || drumm3rB01.x === w.xf + 1)
+                                (drumm3rB01.x >= w.xf && drumm3rB01.x <= w.xt) &&
+                                (drumm3rB01.y === w.yf - 5 || drumm3rB01.y === w.yf + 5)
+                            ) ||
+                            (
+                                (drumm3rB01.y >= w.yf && drumm3rB01.y <= w.yt) &&
+                                (drumm3rB01.x === w.xf - 5 || drumm3rB01.x === w.xf + 5)
                             )
                         ) {
                             return true;
@@ -88,21 +123,33 @@ window.onload = () => {
                 function play() {
                     if (!hit_wall()) {
                         clear_player();
-                        drumm3rB01.y--;
+
+                        drumm3rB01.x += drumm3rB01.vx;
+                        drumm3rB01.y += drumm3rB01.vy;
+
                         draw_player();
                     } else {
-                        console.log('asdf');
                         window.clearInterval(intval);
                     }
                 }
 
                 function start_game() {
-                    intval = window.setInterval(play, 15);
+                    intval = window.setInterval(play, 5);
+                }
+
+                function stop_game() {
+                    window.clearInterval(intval);
                 }
 
                 window.onkeydown = e => {
                     if (e.keyCode === 32) {
-                        start_game();
+                        if (!running) {
+                            start_game();
+                        } else {
+                            stop_game();
+                        }
+
+                        running = !running;
                     }
                 };
             }

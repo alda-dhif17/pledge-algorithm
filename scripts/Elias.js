@@ -1,7 +1,9 @@
 class Elias {
-    constructor(x, y, width=40, height=40) {
+    constructor(x, y, width=60, height=60) {
         this.x = x;
         this.y = y;
+        this.vx = 0;
+        this.vy = -1;
         this.width = width;
         this.height = height;
 
